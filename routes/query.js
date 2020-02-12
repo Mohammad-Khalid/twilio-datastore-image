@@ -1,33 +1,9 @@
 const express = require('express'),
       client = require('../lib/client'),
-      {ObjectId, ObjectID} = require('mongodb'),
-      {snakeCase} = require('lodash');
+      {ObjectId, ObjectID} = require('mongodb');
 let router = express.Router();
 
 module.exports = router;
-
-router.use(async(req, res, next) => {
-    const {authorization} = req.headers,
-          decoded = Buffer.from(authorization.split(" ")[1], 'base64').toString().split(":"),
-          accountSid = decoded[0],
-          authToken = decoded[1],
-          twilioClient = require("twilio")(accountSid, authToken);
-
-    try{
-
-        const {friendlyName} = await twilioClient.api.accounts(accountSid).fetch();
-        req.body['dbName'] = snakeCase(friendlyName);
-        return next();
-    }catch(err){
-
-        return res.send({
-            status : false,
-            message : err.message
-        });
-    }
-
-    
-})
 
 router.post("/find", async(req, res) => {
 
@@ -163,6 +139,37 @@ router.post("/remove", async(req, res) => {
         const db = await mongoClient
                          .db(dbName),
               items = await db.collection(tableName).deleteMany(query_params, options_params);
+                         
+        mongoClient.close();
+        return res.status(200).send({
+            status : true,
+            data : items
+        });
+    }catch(err){
+
+        mongoClient.close();
+        console.log(err);
+        return res.send({
+            status : false,
+            message : err.message
+        });
+    }
+});
+
+router.post("/count", async(req, res) => {
+
+    const mongoClient = client.createGotClient();
+    try{
+
+        const {dbName, tableName, query, options} = req.body,
+              query_params = JSON.parse(query),
+              options_params = JSON.parse(options);
+        
+        await mongoClient.connect();
+
+        const db = await mongoClient
+                         .db(dbName),
+              items = await db.collection(tableName).countDocuments(query_params, options_params);
                          
         mongoClient.close();
         return res.status(200).send({

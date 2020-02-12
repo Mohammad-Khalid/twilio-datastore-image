@@ -1,17 +1,12 @@
-version: '2'
-
-# Define the services/containers to be run
+version: "2"
 services:
-  myapp: #name of your service
-    build: ./ # specify the directory of the Dockerfile
+  twilio_datastore:
+    build: .
     ports:
-      - "3002:3002" #specify ports forwarding
+      - "3002:3002"
     links:
       - database # link this service to the database service
-    volumes:
-      - .:/usr/src/app
     depends_on:
       - database
-     
-  database: # name of the service
-    image: mongo # specify image to build container from
+  database:
+    image: mongo
